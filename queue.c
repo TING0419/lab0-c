@@ -265,75 +265,55 @@ void q_sort(struct list_head *head, bool descend)
 {
     if (!head || list_empty(head) || list_is_singular(head))
         return;
-
-    // Break circularity to form a simple singly linked list.
+    struct list_head *data_head = head->next, *node = NULL, *safe = NULL;
     head->prev->next = NULL;
+    head->next = merge_sort_list(data_head, descend);
 
-    // Sort the list starting from the first data node.
-    head->next = merge_sort_list(head->next, descend);
-
-    // Rebuild the doubly linked list pointers and restore circularity.
-    struct list_head *cur = head;
-    while (cur->next) {
-        cur->next->prev = cur;
-        cur = cur->next;
+    for (node = head, safe = head->next; safe->next;
+         node = safe, safe = node->next) {
+        safe->prev = node;
     }
-    cur->next = head;
-    head->prev = cur;
+    safe->next = head;
+    head->prev = safe;
 }
 
 
 int purge(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head))  // If the list is empty, return 0
+    if (!head || list_empty(head))
         return 0;
-
-    if (list_is_singular(head))  // If the list has only one element, return 1
+    if (list_is_singular(head))
         return 1;
-
-    int cnt = 1;  // Keep one element by default
-    struct list_head *node, *safe;
-    struct list_head *peak =
-        head->prev;  // The reference point for comparison is the last element
-
-    // Traverse the list in reverse order (starting from the tail)
-    for (node = head->prev; node != head; node = safe) {
-        safe = node->prev;  // Store the next node for the next iteration
-        const char *s1 = list_entry(peak, element_t, list)
-                             ->value;  // Value of the peak element
-        const char *s2 = list_entry(node, element_t, list)
-                             ->value;  // Value of the current node
-
-        // If the elements satisfy the condition for sorting (based on the
-        // 'descend' flag), remove the node and free the memory
+    int cnt = 1;
+    struct list_head *node = NULL, *safe = NULL, *peak = head->prev;
+    for (node = head->prev->prev, safe = node->prev; node != head;
+         node = safe, safe = node->prev) {
+        const char *s1 = list_entry(peak, element_t, list)->value;
+        const char *s2 = list_entry(node, element_t, list)->value;
         if ((!descend && strcmp(s1, s2) <= 0) ||
             (descend && strcmp(s1, s2) >= 0)) {
-            list_del(node);  // Remove the node from the list
-            q_release_element(list_entry(
-                node, element_t, list));  // Free the memory for the element
+            list_del(node);
+            q_release_element(list_entry(node, element_t, list));
         } else {
-            peak = node;  // Update the peak node to the current one
-            cnt++;        // Increment the count of retained elements
+            peak = node;
+            cnt += 1;
         }
     }
-
-    return cnt;  // Return the number of elements that remain in the list
+    return cnt;
 }
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return purge(head, 0);
+    return purge(head, false);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return purge(head, 1);
+    return purge(head, true);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
