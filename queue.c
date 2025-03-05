@@ -13,8 +13,7 @@ struct list_head *q_new()
     if (!head)
         return NULL;
 
-    head->next = head;
-    head->prev = head;
+    INIT_LIST_HEAD(head);
     return head;
 }
 
