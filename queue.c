@@ -201,8 +201,72 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
-/* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+/* Merge two sorted lists into one, using a dummy head node */
+static struct list_head *merge_sorted_lists(struct list_head *left,
+                                            struct list_head *right,
+                                            bool descend)
+{
+    LIST_HEAD(dummy);
+    struct list_head *tail = &dummy;
+
+    while (left && right) {
+        const char *lval = list_entry(left, element_t, list)->value;
+        const char *rval = list_entry(right, element_t, list)->value;
+        if ((!descend && strcmp(lval, rval) <= 0) ||
+            (descend && strcmp(lval, rval) >= 0)) {
+            tail->next = left;
+            left = left->next;
+        } else {
+            tail->next = right;
+            right = right->next;
+        }
+        tail = tail->next;
+    }
+    tail->next = left ? left : right;
+    return dummy.next;
+}
+
+/* Recursively perform merge sort on a singly-linked list */
+static struct list_head *merge_sort_list(struct list_head *head, bool descend)
+{
+    if (!head || !head->next)
+        return head;
+
+    struct list_head *slow = head, *fast = head->next;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    struct list_head *second = slow->next;
+    slow->next = NULL;
+
+    head = merge_sort_list(head, descend);
+    second = merge_sort_list(second, descend);
+    return merge_sorted_lists(head, second, descend);
+}
+
+/* Sort elements of queue in ascending/descending order using merge sort */
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    // Break circularity to form a simple singly linked list.
+    head->prev->next = NULL;
+
+    // Sort the list starting from the first data node.
+    head->next = merge_sort_list(head->next, descend);
+
+    // Rebuild the doubly linked list pointers and restore circularity.
+    struct list_head *cur = head;
+    while (cur->next) {
+        cur->next->prev = cur;
+        cur = cur->next;
+    }
+    cur->next = head;
+    head->prev = cur;
+}
+
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
