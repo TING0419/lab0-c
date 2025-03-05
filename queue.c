@@ -268,12 +268,49 @@ void q_sort(struct list_head *head, bool descend)
 }
 
 
+int purge(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head))  // If the list is empty, return 0
+        return 0;
+
+    if (list_is_singular(head))  // If the list has only one element, return 1
+        return 1;
+
+    int cnt = 1;  // Keep one element by default
+    struct list_head *node, *safe;
+    struct list_head *peak =
+        head->prev;  // The reference point for comparison is the last element
+
+    // Traverse the list in reverse order (starting from the tail)
+    for (node = head->prev; node != head; node = safe) {
+        safe = node->prev;  // Store the next node for the next iteration
+        const char *s1 = list_entry(peak, element_t, list)
+                             ->value;  // Value of the peak element
+        const char *s2 = list_entry(node, element_t, list)
+                             ->value;  // Value of the current node
+
+        // If the elements satisfy the condition for sorting (based on the
+        // 'descend' flag), remove the node and free the memory
+        if ((!descend && strcmp(s1, s2) <= 0) ||
+            (descend && strcmp(s1, s2) >= 0)) {
+            list_del(node);  // Remove the node from the list
+            q_release_element(list_entry(
+                node, element_t, list));  // Free the memory for the element
+        } else {
+            peak = node;  // Update the peak node to the current one
+            cnt++;        // Increment the count of retained elements
+        }
+    }
+
+    return cnt;  // Return the number of elements that remain in the list
+}
+
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    return purge(head, 0);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
@@ -281,7 +318,7 @@ int q_ascend(struct list_head *head)
 int q_descend(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    return purge(head, 1);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
