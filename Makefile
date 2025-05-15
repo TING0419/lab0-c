@@ -86,6 +86,12 @@ valgrind: valgrind_existence
 	@echo "Test with specific case by running command:" 
 	@echo "scripts/driver.py -p $(patched_file) --valgrind -t <tid>"
 
+# Use Valgrind's Massif tool to analyze heap memory usage
+# -v 3 enables verbose output, -f specifies the input trace file
+# The output will be written to massif.out.<pid>, which can be inspected using ms_print or massif-visualizer
+check-massif: qtest
+	valgrind --tool=massif ./$< -v 3 -f traces/trace-06-ops.cmd  
+
 clean:
 	rm -f $(OBJS) $(deps) *~ qtest /tmp/qtest.* fmtscan
 	rm -rf .$(DUT_DIR)
